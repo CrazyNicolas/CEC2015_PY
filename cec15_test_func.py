@@ -15,6 +15,7 @@ def sr_func(x, Os, Mr, sh):  # shift and rotate
     return rotatefunc(y, Mr)
 
 
+# Superclass for all basis problems, for the clarity and simplicity of code, and in the convenience of calling
 class Problem:
     def __init__(self, dim, shift, rotate):
         self.dim = dim
@@ -25,7 +26,7 @@ class Problem:
         return 0
 
     @staticmethod
-    def read(problem_path):
+    def read(problem_path):  # Read the problem data from files
         with open(problem_path, 'r') as fpt:
             if fpt is None:
                 print("\n Error: Cannot open input file for reading \n")
@@ -43,13 +44,13 @@ class Problem:
             return dim, shift, rotate
 
     @staticmethod
-    def generator(problem_type, dim):
+    def generator(problem_type, dim):  # Generate an instance of type-assigned problem
         shift = np.random.random(dim) * 160 - 80
         H = Problem.rotate_gen(dim)
         return eval(problem_type)(dim, shift, H)
 
     @staticmethod
-    def rotate_gen(dim):
+    def rotate_gen(dim):  # Generate a rotate matrix
         random_state = np.random
         H = np.eye(dim)
         D = np.ones((dim,))
@@ -69,7 +70,7 @@ class Problem:
         return H
 
     @staticmethod
-    def store_instance(instance, filename):
+    def store_instance(instance, filename):  # Store the problem instance into a file
         with open(filename, 'w') as fpt:
             fpt.write(str(instance.dim) + '\n')
             fpt.write(' '.join(str(i) for i in instance.shift))
@@ -87,9 +88,6 @@ class Sphere(Problem):
     def func(self, x):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
         return np.sum(z ** 2)
-# def sphere_func(x, Os, Mr, s_flag, r_flag):  # Sphere
-#     z = sr_func(x, Os, Mr, 1.0, s_flag, r_flag)
-#     return np.sum(z ** 2)
 
 
 class Ellipsoidal(Problem):
@@ -102,11 +100,6 @@ class Ellipsoidal(Problem):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
         i = np.arange(nx)
         return np.sum(np.power(10, 6 * i / (nx - 1)) * (z ** 2))
-# def ellips_func(x, Os, Mr, s_flag, r_flag):  # Ellipsoidal
-#     nx = x.shape[-1]
-#     z = sr_func(x, Os, Mr, 1.0, s_flag, r_flag)
-#     i = np.arange(nx)
-#     return np.sum(np.power(10, 6 * i / (nx - 1)) * (z ** 2))
 
 
 class Bent_cigar(Problem):
@@ -117,9 +110,6 @@ class Bent_cigar(Problem):
     def func(self, x):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
         return z[0] ** 2 + np.sum(np.power(10, 6) * (z[1:] ** 2))
-# def bent_cigar_func(x, Os, Mr, s_flag, r_flag):  # Bent_Cigar
-#     z = sr_func(x, Os, Mr, 1.0, s_flag, r_flag)
-#     return z[0] ** 2 + np.sum(np.power(10, 6) * (z[1:] ** 2))
 
 
 class Discus(Problem):
@@ -130,9 +120,6 @@ class Discus(Problem):
     def func(self, x):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
         return np.power(10, 6) * (z[0] ** 2) + np.sum(z[1:] ** 2)
-# def discus_func(x, Os, Mr, s_flag, r_flag):  # Discus
-#     z = sr_func(x, Os, Mr, 1.0, s_flag, r_flag)
-#     return np.power(10, 6) * (z[0] ** 2) + np.sum(z[1:] ** 2)
 
 
 class Dif_powers(Problem):
@@ -144,11 +131,6 @@ class Dif_powers(Problem):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
         i = np.arange(self.dim)
         return np.power(np.sum(np.power(np.fabs(z), 2 + 4 * i / (self.dim - 1))), 0.5)
-# def dif_powers_func(x, Os, Mr, s_flag, r_flag):  # Different Powers
-#     nx = x.shape[-1]
-#     z = sr_func(x, Os, Mr, 1.0, s_flag, r_flag)
-#     i = np.arange(nx)
-#     return np.power(np.sum(np.power(np.fabs(z), 2 + 4 * i / (nx - 1))), 0.5)
 
 
 class Rosenbrock(Problem):
@@ -162,12 +144,6 @@ class Rosenbrock(Problem):
         z = z[:-1]
         tmp1 = (z + 1) ** 2 - z_ - 1
         return np.sum(100 * tmp1 * tmp1 + z * z)
-# def rosenbrock_func(x, Os, Mr, s_flag, r_flag):  # Rosenbrock's
-#     z = sr_func(x, Os, Mr, 2.048/100.0, s_flag, r_flag)
-#     z_ = z[1:]
-#     z = z[:-1]
-#     tmp1 = (z + 1) ** 2 - z_ - 1
-#     return np.sum(100 * tmp1 * tmp1 + z * z)
 
 
 class Ackley(Problem):
@@ -180,12 +156,6 @@ class Ackley(Problem):
         sum1 = -0.2 * np.sqrt(np.sum(z ** 2) / self.dim)
         sum2 = np.sum(np.cos(2 * np.pi * z)) / self.dim
         return np.e + 20 - 20 * np.exp(sum1) - np.exp(sum2)
-# def ackley_func(x, Os, Mr, s_flag, r_flag):  # Ackley's
-#     nx = x.shape[-1]
-#     z = sr_func(x, Os, Mr, 1.0, s_flag, r_flag)
-#     sum1 = -0.2 * np.sqrt(np.sum(z ** 2) / nx)
-#     sum2 = np.sum(np.cos(2 * np.pi * z)) / nx
-#     return np.e + 20 - 20 * np.exp(sum1) - np.exp(sum2)
 
 
 class Weierstrass(Problem):
@@ -201,15 +171,6 @@ class Weierstrass(Problem):
             sum1 += np.sum(np.power(a, k) * np.cos(2 * np.pi * np.power(b, k) * (z + 0.5)))
             sum2 += np.power(a, k) * np.cos(2 * np.pi * np.power(b, k) * 0.5)
         return sum1 - self.dim * sum2
-# def weierstrass_func(x, Os, Mr, s_flag, r_flag):  # Weierstrass's
-#     nx = x.shape[-1]
-#     z = sr_func(x, Os, Mr, 0.5/100, s_flag, r_flag)
-#     a, b, k_max = 0.5, 3.0, 20
-#     sum1, sum2 = 0, 0
-#     for k in range(k_max + 1):
-#         sum1 += np.sum(np.power(a, k) * np.cos(2 * np.pi * np.power(b, k) * (z + 0.5)))
-#         sum2 += np.power(a, k) * np.cos(2 * np.pi * np.power(b, k) * 0.5)
-#     return sum1 - nx * sum2
 
 
 class Griewank(Problem):
@@ -224,13 +185,6 @@ class Griewank(Problem):
         for i in range(z.shape[-1]):
             p *= np.cos(z[i] / np.sqrt(1 + i))
         return 1 + s / 4000 - p
-# def griewank_func(x, Os, Mr, s_flag, r_flag):  # Griewank's
-#     z = sr_func(x, Os, Mr, 600.0/100.0, s_flag, r_flag)
-#     s = np.sum(z ** 2)
-#     p = 1
-#     for i in range(z.shape[-1]):
-#         p *= np.cos(z[i] / np.sqrt(1 + i))
-#     return 1 + s / 4000 - p
 
 
 class Rastrigin(Problem):
@@ -241,9 +195,6 @@ class Rastrigin(Problem):
     def func(self, x):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
         return np.sum(z ** 2 - 10 * np.cos(2 * np.pi * z) + 10)
-# def rastrigin_func(x, Os, Mr, s_flag, r_flag):  # Rastrigin's
-#     z = sr_func(x, Os, Mr, 5.12/100.0, s_flag, r_flag)
-#     return np.sum(z ** 2 - 10 * np.cos(2 * np.pi * z) + 10)
 
 
 class Schwefel(Problem):
@@ -269,25 +220,6 @@ class Schwefel(Problem):
             else:
                 res -= z[i] * np.sin(np.power(np.fabs(z[i]), 0.5))
         return res + b * self.dim
-# def schwefel_func(x, Os, Mr, s_flag, r_flag):  # Schwefel's
-#     nx = x.shape[-1]
-#     z = sr_func(x, Os, Mr, 1000.0/100.0, s_flag, r_flag)
-#     a = 4.209687462275036e+002
-#     b = 4.189828872724338e+002
-#     z += a
-#     res = 0
-#     for i in range(nx):
-#         if z[i] > 500:
-#             res -= (500 - z[i] % 500) * np.sin(np.power(500 - z[i] % 500, 0.5))
-#             tmp = (z[i] - 500) / 100
-#             res += tmp * tmp / nx
-#         elif z[i] < -500:
-#             res -= (-500.0 + np.fabs(z[i]) % 500) * np.sin(np.power(500.0 - np.fabs(z[i]) % 500, 0.5))
-#             tmp = (z[i] + 500.0) / 100
-#             res += tmp * tmp / nx
-#         else:
-#             res -= z[i] * np.sin(np.power(np.fabs(z[i]), 0.5))
-#     return res + b * nx
 
 
 class Katsuura(Problem):
@@ -308,20 +240,6 @@ class Katsuura(Problem):
             res *= np.power(1 + (i + 1) * temp, 10 / tmp3)
         tmp = 10 / self.dim / self.dim
         return res * tmp - tmp
-# def katsuura_func(x, Os, Mr, s_flag, r_flag):  # Katsuura
-#     nx = x.shape[-1]
-#     z = sr_func(x, Os, Mr, 5.0 / 100.0, s_flag, r_flag)
-#     tmp3 = np.power(nx, 1.2)
-#     res = 1
-#     for i in range(nx):
-#         temp = 0
-#         for j in range(32 + 1):
-#             tmp1 = np.power(2, j)
-#             tmp2 = tmp1 * z[i]
-#             temp += np.fabs(tmp2 - np.floor(tmp2 + 0.5)) / tmp1
-#         res *= np.power(1 + (i + 1) * temp, 10 / tmp3)
-#     tmp = 10 / nx / nx
-#     return res * tmp - tmp
 
 
 class Grie_rosen(Problem):
@@ -339,16 +257,6 @@ class Grie_rosen(Problem):
         tmp1 = (z[-1] + 1) * (z[-1] + 1) - z[0] - 1
         temp = 100 * tmp1 * tmp1 + z[-1] * z[-1]
         return res + temp * temp / 4000 - np.cos(temp) + 1
-# def grie_rosen_func(x, Os, Mr, s_flag, r_flag):  # Griewank-Rosenbrock
-#     z = sr_func(x, Os, Mr, 5.0 / 100.0, s_flag, r_flag)
-#     z_ = z[1:]
-#     _z = z[:-1]
-#     tmp1 = (_z + 1) ** 2 - z_ - 1
-#     temp = 100 * tmp1 * tmp1 + _z * _z
-#     res = np.sum(temp * temp / 4000 - np.cos(temp + 1))
-#     tmp1 = (z[-1] + 1) * (z[-1] + 1) - z[0] - 1
-#     temp = 100 * tmp1 * tmp1 + z[-1] * z[-1]
-#     return res + temp * temp / 4000 - np.cos(temp) + 1
 
 
 class Escaffer6(Problem):
@@ -360,10 +268,6 @@ class Escaffer6(Problem):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
         z_ = np.concatenate((z[1:], z[:1]))
         return np.sum(0.5 + (np.sin(np.sqrt(z ** 2 + z_ ** 2)) ** 2 - 0.5) / ((1 + 0.001 * (z ** 2 + z_ ** 2)) ** 2))
-# def escaffer6_func(x, Os, Mr, s_flag, r_flag):  # Expanded Scaffer's F6
-#     z = sr_func(x, Os, Mr, 1.0, s_flag, r_flag)
-#     z_ = np.concatenate(z[1:], z[:1])
-#     return np.sum(0.5 + (np.sin(np.sqrt(z ** 2 + z_ ** 2)) ** 2 - 0.5) / ((1 + 0.001 * (z ** 2 + z_ ** 2)) ** 2))
 
 
 class Happycat(Problem):
@@ -377,13 +281,6 @@ class Happycat(Problem):
         sum_z = np.sum(z - 1)
         r2 = np.sum((z - 1) ** 2)
         return np.power(np.fabs(r2 - self.dim), 2 * alp) + (0.5 * r2 + sum_z) / self.dim + 0.5
-# def happycat_func(x, Os, Mr, s_flag, r_flag):  # HappyCat, provdided by Hans-Georg Beyer (HGB)
-#     nx = x.shape[-1]
-#     z = sr_func(x, Os, Mr, 5.0 / 100.0, s_flag, r_flag)
-#     alp = 1 / 8
-#     sum_z = np.sum(z - 1)
-#     r2 = np.sum((z - 1) ** 2)
-#     return np.power(np.fabs(r2 - nx), 2 * alp) + (0.5 * r2 + sum_z) / nx + 0.5
 
 
 class Hgbat(Problem):
@@ -397,15 +294,9 @@ class Hgbat(Problem):
         sum_z = np.sum(z - 1)
         r2 = np.sum((z - 1) ** 2)
         return np.power(np.fabs(np.power(r2, 2) - np.power(sum_z, 2)), 2 * alp) + (0.5 * r2 + sum_z) / self.dim + 0.5
-# def hgbat_func(x, Os, Mr, s_flag, r_flag):  # HGBat, provdided by Hans-Georg Beyer (HGB)
-#     nx = x.shape[-1]
-#     z = sr_func(x, Os, Mr, 5.0 / 100.0, s_flag, r_flag)
-#     alp = 1 / 4
-#     sum_z = np.sum(z - 1)
-#     r2 = np.sum((z - 1) ** 2)
-#     return np.power(np.fabs(np.power(r2, 2) - np.power(sum_z, 2)), 2 * alp) + (0.5 * r2 + sum_z) / nx + 0.5
 
 
+# Dictionary of supported problems, in the convenience of calling and composition
 functions = {'Sphere': Sphere, 'Ellipsoidal': Ellipsoidal, 'Bent_cigar': Bent_cigar, 'Discus': Discus,
              'Dif_powers': Dif_powers, 'Rosenbrock': Rosenbrock, 'Ackley': Ackley, 'Weierstrass': Weierstrass,
              'Griewank': Griewank,'Rastrigin': Rastrigin, 'Schwefel': Schwefel, 'Katsuura': Katsuura,
@@ -473,7 +364,6 @@ class Composition:
                 w[i] = INF
         if np.max(w) == 0:
             w = np.ones(self.cf_num)
-        print(w)
         res = 0
         for i in range(self.cf_num):
             fit = self.lamda[i] * self.problems[i].func(x) + self.bias[i]
@@ -481,9 +371,11 @@ class Composition:
         return res + self.F
 
     @staticmethod
-    def generator(filename):
-        cf_num = np.random.randint(3, 11)
-        dim = np.random.randint(30, 101)
+    def generator(filename, dim=0, cf_num=0, problem_names=None):  # Generate a composition problem and store in a file
+        if cf_num <= 0:
+            cf_num = np.random.randint(3, 11)  # The number of problems in the composition
+        if dim <= 0:
+            dim = np.random.randint(30, 101)
         lamda = np.random.random(cf_num)
         sigma = np.random.randint(1, cf_num, cf_num) * 10
         bias = np.random.permutation(cf_num) * 100
@@ -491,7 +383,10 @@ class Composition:
         problems = []
         names = []
         for i in range(cf_num):
-            name = random.sample(list(functions.keys()), 1)[0]
+            if problem_names is None or len(problem_names) == 0:  # User doesn't assign the problems in the composition
+                name = random.sample(list(functions.keys()), 1)[0]
+            else:
+                name = random.sample(problem_names, 1)[0]
             names.append(name)
             problems.append(Problem.generator(name, dim))
         with open(filename, 'w') as fpt:
@@ -514,10 +409,8 @@ class Composition:
         return Composition(filename)
 
 
-Composition.generator('test.txt')
-C = Composition('test.txt')
-x = C.problems[0].shift
-
-print(C.func(x))
+# C = Composition.generator('test.txt', 5, 5, ['Sphere'])
+# x = C.problems[np.argmin(C.bias)].shift
+# print(C.func(x))
 
 
