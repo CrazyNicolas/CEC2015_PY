@@ -45,8 +45,10 @@ class Problem:
 
     @staticmethod
     def generator(problem_type, dim):  # Generate an instance of type-assigned problem
-        shift = np.random.random(dim) * 160 - 80
-        H = Problem.rotate_gen(dim)
+        # shift = np.random.random(dim) * 160 - 80
+        # H = Problem.rotate_gen(dim)
+        shift = np.zeros(dim)
+        H = np.eye(dim)
         return eval(problem_type)(dim, shift, H)
 
     @staticmethod
@@ -142,8 +144,8 @@ class Rosenbrock(Problem):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
         z_ = z[1:]
         z = z[:-1]
-        tmp1 = (z + 1) ** 2 - z_ - 1
-        return np.sum(100 * tmp1 * tmp1 + z * z)
+        tmp1 = z ** 2 - z_
+        return np.sum(100 * tmp1 * tmp1 + (z - 1) ** 2)
 
 
 class Ackley(Problem):
@@ -182,7 +184,7 @@ class Griewank(Problem):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
         s = np.sum(z ** 2)
         p = 1
-        for i in range(z.shape[-1]):
+        for i in range(self.dim):
             p *= np.cos(z[i] / np.sqrt(1 + i))
         return 1 + s / 4000 - p
 
@@ -210,16 +212,16 @@ class Schwefel(Problem):
         res = 0
         for i in range(self.dim):
             if z[i] > 500:
-                res -= (500 - z[i] % 500) * np.sin(np.power(500 - z[i] % 500, 0.5))
+                res += (500 - z[i] % 500) * np.sin(np.power(500 - z[i] % 500, 0.5))
                 tmp = (z[i] - 500) / 100
-                res += tmp * tmp / self.dim
+                res -= tmp * tmp / self.dim
             elif z[i] < -500:
-                res -= (-500.0 + np.fabs(z[i]) % 500) * np.sin(np.power(500.0 - np.fabs(z[i]) % 500, 0.5))
+                res += (-500.0 + np.fabs(z[i]) % 500) * np.sin(np.sqrt(500.0 - np.fabs(z[i]) % 500))
                 tmp = (z[i] + 500.0) / 100
-                res += tmp * tmp / self.dim
+                res -= tmp * tmp / self.dim
             else:
-                res -= z[i] * np.sin(np.power(np.fabs(z[i]), 0.5))
-        return res + b * self.dim
+                res += z[i] * np.sin(np.sqrt(np.fabs(z[i])))
+        return b * self.dim - res
 
 
 class Katsuura(Problem):
@@ -249,14 +251,12 @@ class Grie_rosen(Problem):
 
     def func(self, x):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
-        z_ = z[1:]
-        _z = z[:-1]
-        tmp1 = (_z + 1) ** 2 - z_ - 1
-        temp = 100 * tmp1 * tmp1 + _z * _z
-        res = np.sum(temp * temp / 4000 - np.cos(temp + 1))
-        tmp1 = (z[-1] + 1) * (z[-1] + 1) - z[0] - 1
-        temp = 100 * tmp1 * tmp1 + z[-1] * z[-1]
-        return res + temp * temp / 4000 - np.cos(temp) + 1
+        z_ = np.concatenate((z[1:], z[:1]))
+        _z = z
+        tmp1 = _z ** 2 - z_
+        temp = 100 * tmp1 * tmp1 + (_z - 1) ** 2
+        res = np.sum(temp * temp / 4000 - np.cos(temp)) + 1
+        return res
 
 
 class Escaffer6(Problem):
@@ -277,10 +277,9 @@ class Happycat(Problem):
 
     def func(self, x):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
-        alp = 1 / 8
-        sum_z = np.sum(z - 1)
-        r2 = np.sum((z - 1) ** 2)
-        return np.power(np.fabs(r2 - self.dim), 2 * alp) + (0.5 * r2 + sum_z) / self.dim + 0.5
+        sum_z = np.sum(z)
+        r2 = np.sum(z ** 2)
+        return np.power(np.fabs(r2 - self.dim), 1 / 4) + (0.5 * r2 + sum_z) / self.dim + 0.5
 
 
 class Hgbat(Problem):
@@ -290,10 +289,9 @@ class Hgbat(Problem):
 
     def func(self, x):
         z = sr_func(x, self.shift, self.rotate, self.shrink)
-        alp = 1 / 4
-        sum_z = np.sum(z - 1)
-        r2 = np.sum((z - 1) ** 2)
-        return np.power(np.fabs(np.power(r2, 2) - np.power(sum_z, 2)), 2 * alp) + (0.5 * r2 + sum_z) / self.dim + 0.5
+        sum_z = np.sum(z)
+        r2 = np.sum(z ** 2)
+        return np.sqrt(np.fabs(np.power(r2, 2) - np.power(sum_z, 2))) + (0.5 * r2 + sum_z) / self.dim + 0.5
 
 
 # Dictionary of supported problems, in the convenience of calling and composition
@@ -304,7 +302,95 @@ functions = {'Sphere': Sphere, 'Ellipsoidal': Ellipsoidal, 'Bent_cigar': Bent_ci
 
 
 class Hybrid:
-    pass
+    def __init__(self, problems_path):
+        with open(problems_path, 'r') as fpt:
+            if fpt is None:
+                print("\n Error: Cannot open input file for reading \n")
+                return
+            tmp = fpt.readline().split()
+            dim = int(tmp[0])
+            cf_num = int(tmp[1])
+            self.cf_num = cf_num
+            self.dim = dim
+
+            length = fpt.readline().split()
+            self.length = np.zeros(cf_num, dtype=int)
+            for i in range(cf_num):
+                self.length[i] = int(length[i])
+
+            shuffle = fpt.readline().split()
+            self.shuffle = np.zeros(dim, dtype=int)
+            for i in range(dim):
+                self.shuffle[i] = int(shuffle[i])
+
+            self.problems = []
+            for i in range(cf_num):
+                text = fpt.readline().split()
+                name = text[0]
+                dim = int(text[1])
+                shift = np.zeros(dim)
+                rotate = np.eye(dim)
+                text = fpt.readline().split()
+                for j in range(dim):
+                    shift[j] = float(text[j])
+                for i in range(dim):
+                    text = fpt.readline().split()
+                    for j in range(dim):
+                        rotate[i][j] = float(text[j])
+                if functions.get(name) is None:
+                    print("\n Error: No such problem function: {} \n".format(name))
+                    return
+                self.problems.append(functions.get(name)(dim, shift, rotate))
+
+    def func(self, x):
+        y = x[self.shuffle]
+        index = 0
+        res = 0
+        for i in range(self.cf_num):
+            yi = y[index:index + self.length[i]]
+            index += self.length[i]
+            res += self.problems[i].func(yi)
+        return res
+
+    @staticmethod
+    def generator(filename, dim=0, cf_num=0, problem_names=None):  # Generate a composition problem and store in a file
+        if cf_num <= 0:
+            cf_num = np.random.randint(3, 6)  # The number of problems in the composition
+        if dim <= 0:
+            dim = np.random.randint(30, 101, 10)
+        seg = np.random.random(cf_num)
+        seg /= np.sum(seg)
+        length = np.round(dim * seg)
+        length[-1] = dim - np.sum(length[:-1])
+        shuffle = np.random.permutation(dim)
+        names = []
+        problems = []
+        for i in range(cf_num):
+            if problem_names is None or len(problem_names) == 0:  # User doesn't assign the problems in the composition
+                name = random.sample(list(functions.keys()), 1)[0]
+            else:
+                name = random.sample(problem_names, 1)[0]
+            names.append(name)
+            problems.append(Problem.generator(name, int(length[i])))
+        with open(filename, 'w') as fpt:
+            fpt.write(str(dim) + ' ' + str(cf_num) + '\n')
+            fpt.write(' '.join(str(int(i)) for i in length))
+            fpt.write('\n')
+            fpt.write(' '.join(str(int(i)) for i in shuffle))
+            fpt.write('\n')
+            for i in range(cf_num):
+                fpt.write(names[i] + ' ' + str(problems[i].dim) + '\n')
+                fpt.write(' '.join(str(i) for i in problems[i].shift))
+                fpt.write('\n')
+                for k in range(problems[i].dim):
+                    fpt.write(' '.join(str(j) for j in problems[i].rotate[k]))
+                    fpt.write('\n')
+        return Hybrid(filename)
+
+
+
+
+
 
 
 class Composition:
@@ -375,7 +461,7 @@ class Composition:
         if cf_num <= 0:
             cf_num = np.random.randint(3, 11)  # The number of problems in the composition
         if dim <= 0:
-            dim = np.random.randint(30, 101)
+            dim = np.random.randint(30, 101, 10)
         lamda = np.random.random(cf_num)
         sigma = np.random.randint(1, cf_num, cf_num) * 10
         bias = np.random.permutation(cf_num) * 100
@@ -409,8 +495,16 @@ class Composition:
         return Composition(filename)
 
 
+# dim = 5
+# x = np.ones(dim)
+# for p in list(functions.keys()):
+#     ins = Problem.generator(p, dim)
+#     print(p, ins.func(x))
 # C = Composition.generator('test.txt', 5, 5, ['Sphere'])
 # x = C.problems[np.argmin(C.bias)].shift
 # print(C.func(x))
-
+# dim = 50
+# x = np.zeros(dim)
+# H = Hybrid.generator('test.txt', dim, 4, ['Sphere', 'Ackley'])
+# print(H.func(x))
 
